@@ -1,68 +1,146 @@
-import { getMenus } from "@/apis";
-import { LayoutPage, TITLE } from "@/assets/js/global";
-import { getLocal, setLocal } from "@/request/auth";
-import { useUserStore } from "@/stores";
-import { ElMessage } from "element-plus";
-import { createRouter, createWebHistory, type NavigationGuardNext, type RouteLocationNormalized } from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import Layout from "@/layout/Home/index.vue";
+import { getLocal } from "@/request/auth";
+import { TITLE } from "@/assets/js/global";
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/dashboard" }, // 重定向
   {
     path: "/login",
+    name: "Login",
     meta: { title: "登录" },
-    component: () => import("@/views/Login.vue"),
+    component: () => import("@/views/login/index.vue"),
   },
   {
     path: "/",
-    name: LayoutPage, // 路由名称, 用于添加动态路由 (详见: https://router.vuejs.org/zh/guide/advanced/dynamic-routing.html#%E6%B7%BB%E5%8A%A0%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1)
-    component: () => import(`@/views/${LayoutPage}.vue`),
+    name: "Layout",
+    component: Layout,
+    children: [
+      {
+        path: "/dashboard",
+        name: "Dashboard",
+        meta: { title: "系统首页", icon: "dashboard", roles: ["admin", "teacher", "student"] },
+        component: () => import("@/views/dashboard/index.vue"),
+      },
+      {
+        path: "/settings",
+        name: "Settings",
+        meta: { title: "系统管理", icon: "setting", roles: ["admin", "teacher", "student"] },
+        component: () => import("@/views/settings/index.vue"),
+        children: [
+          {
+            path: "/department",
+            name: "Department",
+            meta: { title: "院系管理", roles: ["admin"], icon: "dept" },
+            component: () => import("@/views/settings/department/index.vue"),
+          },
+          {
+            path: "/major",
+            name: "Major",
+            meta: { title: "专业管理", roles: ["admin"], icon: "major" },
+            component: () => import("@/views/settings/major/index.vue"),
+          },
+          {
+            path: "/teacher",
+            name: "Teacher",
+            meta: { title: "教师管理", roles: ["admin"], icon: "tutor" },
+            component: () => import("@/views/settings/teacher/index.vue"),
+          },
+          {
+            path: "/student",
+            name: "Student",
+            meta: { title: "学生管理", roles: ["admin"], icon: "stu" },
+            component: () => import("@/views/settings/student/index.vue"),
+          },
+          {
+            path: "/course",
+            name: "Course",
+            meta: { title: "课程管理", roles: ["admin", "teacher", "student"], icon: "intro" },
+            component: () => import("@/views/settings/course/index.vue"),
+          },
+          {
+            path: "/elective",
+            name: "Elective",
+            meta: { title: "选课管理", roles: ["admin"], icon: "sc" },
+            component: () => import("@/views/settings/elective/index.vue"),
+          },
+          {
+            path: "/taught",
+            name: "Taught",
+            meta: { title: "讲授管理", roles: ["admin"], icon: "taught" },
+            component: () => import("@/views/settings/taught/index.vue"),
+          },
+          {
+            path: "/myTaught",
+            name: "MyTaught",
+            meta: { title: "我的讲授", roles: ["teacher"], icon: "taught" },
+            component: () => import("@/views/settings/myTaught/index.vue"),
+          },
+          {
+            path: "/myElective",
+            name: "MyElective",
+            meta: { title: "我的课程", roles: ["student"], icon: "sc" },
+            component: () => import("@/views/settings/myElective/index.vue"),
+          },
+        ],
+      },
+      {
+        path: "/messages",
+        name: "Messages",
+        meta: { title: "消息中心", icon: "msg", roles: ["admin", "teacher", "student"] },
+        component: () => import("@/views/messages/index.vue"),
+      },
+      {
+        path: "/user",
+        name: "User",
+        meta: { title: "个人中心", icon: "user", roles: ["admin", "teacher", "student"] },
+        component: () => import("@/views/user/index.vue"),
+      },
+    ],
+  },
+  {
+    path: "/403",
+    name: "403",
+    meta: { title: "没有权限" },
+    component: () => import("@/views/error/403/index.vue"),
   },
   {
     path: "/:pathMatch(.*)*",
-    meta: { title: "404" },
-    component: () => import("@/views/404.vue"),
+    name: "404",
+    meta: { title: "找不到页面" },
+    component: () => import("@/views/error/404/index.vue"),
   },
+  // {
+  //   path: '/:pathMatch(.*)',
+  //   redirect: '/404'
+  // }
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+  routes: routes,
 });
 
-router.beforeResolve(async (to) => {
-  const userStore = useUserStore();
-
-  if (to.path !== "/login" && userStore.menu.length == 0) { // 检查是否存在菜单列表, 不存在则获取菜单列表 (避免无限重定向)
-    const menus = getLocal("menus");
-    if (menus) {
-      userStore.addRoutes(menus, router); // 添加动态路由
-      return { ...to, replace: true };
-    } else {
-      try {
-        const { data: { data } } = await getMenus(); // 获取菜单列表
-        if (data.length > 0) {
-          userStore.addRoutes(data, router); // 添加动态路由
-          return { ...to, replace: true };
-        } else {
-          ElMessage.error("菜单列表为空");
-          return false;
-        }
-      } catch (error: any) {
-        throw error; // 抛出异常, 被全局异常捕获
-      }
-    }
-  }
-});
-
-router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+// 全局路由守卫(前置)
+router.beforeEach((to, from, next) => {
+  // VNode.component?.exposed?.startLoading();
   document.title = `${to.meta.title} | ${TITLE}`; // 页面名
-
-  if (to.path !== "/login" && !document.cookie) { // 检查是否存在cookie, 不存在则用户登录状态失效 (避免无限重定向)
-    ElMessage.error("登录状态失效, 请重新登录");
-    next("/login"); // 重定向到登录页
+  const userInfo = JSON.parse(getLocal("userInfo"));
+  const role = getLocal("role");
+  if (!userInfo && to.path !== "/login") {
+    next("/login");
+  } else if (to.meta.roles) {
+    let roles: any = to.meta.roles;
+    // 如果是管理员权限则可进入，这里只是简单的模拟管理员权限而已
+    roles.indexOf(role) > -1 ? next() : next("/403");
   } else {
     next();
   }
+});
+
+// 全局路由守卫(后置）
+router.afterEach((to, from) => {
+  // VNode.component?.exposed?.stopLoading();
 });
 
 export default router;

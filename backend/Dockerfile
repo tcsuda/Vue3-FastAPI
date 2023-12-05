@@ -1,5 +1,5 @@
-# Python版本
-FROM python:3.11
+﻿# Python版本
+FROM python:3.9
 
 # 工作路径
 WORKDIR /code
@@ -18,4 +18,7 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --default-timeout=10
 COPY . /code/
 
 # 启动命令
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+
+# main.py启动命令
+CMD ["python", "main.py"]

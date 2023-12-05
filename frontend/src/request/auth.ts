@@ -2,22 +2,17 @@ const TokenKey = "Authorization$://"; //授权码
 /*
  * 获取getItem
  * */
-export function getLocal(Key?: string | undefined) {
-  let local = localStorage.getItem(Key ? Key : TokenKey);
-  try {
-    if (local) return JSON.parse(local);
-  } catch (e) {
-    return local || null;
-  }
+export function getLocal(key?: string) {
+  return localStorage.getItem(key ? key : TokenKey) as any;
 }
 
 /*
  * 设置setItem
  * */
-export function setLocal(Key?: string, params?: any) {
-  if(params instanceof Object) params = JSON.stringify(params);
-  return localStorage.setItem(Key ? Key : TokenKey, params);
+export function setLocal(key: string | undefined, params: any) {
+  return localStorage.setItem(key ? key : TokenKey, params);
 }
+
 /*
  * 移除removeItem
  * */
