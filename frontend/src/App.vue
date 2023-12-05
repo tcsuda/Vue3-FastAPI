@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { provide } from "vue";
 import { RouterView } from "vue-router";
-import * as echarts from "echarts";
-// provide/inject 声明类型: https://www.jianshu.com/p/7064c5f8f143
-
-// 声明echarts (依赖注入)
-provide("echarts", echarts);
+import zhCn from "element-plus/dist/locale/zh-cn.mjs"; // element-plus 中文语言包
 </script>
 
 <template>
-  <RouterView />
+  <el-config-provider :locale="zhCn">
+    <RouterView />
+  </el-config-provider>
 </template>
 
-<style>
-@import "@/assets/css/main.css";
-@import "@/assets/css/color-dark.css";
-</style>
+<style></style>
